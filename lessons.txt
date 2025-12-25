@@ -1,0 +1,7 @@
+sql doe not automatically update tables, you have to use alembic
+database.py is a python file and whatever your table was named as .db is your database file
+responses must correlate with the schema 
+your objects that should be created must exist in all versions of models(schema, response, create_user)
+"type annotations" is used in schema inside a class, never assignment
+config is important to read sql data directly
+bind egine using Base.metadata.create_all to save yourself future stress.
