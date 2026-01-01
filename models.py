@@ -1,5 +1,6 @@
-from sqlalchemy import Integer, Column,String,Text, Boolean,DateTime, func
+from sqlalchemy import Integer, Column,String,Text, Boolean,ForeignKey,DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from datetime import datetime
 
 Base = declarative_base()
@@ -11,10 +12,12 @@ class Task(Base):
     content=Column(Text, nullable=True)
     description=Column(Text, nullable=True)
     created_at=Column(DateTime(timezone=True), server_default=func.now())
-
+    owner_id=Column(Integer, ForeignKey("users.id"))
+    owner=relationship("User", back_populates="tasks")
 class User(Base):
-    __tablename__="user.db"
-    id=Column(int, primary_key=True)
-    email=Column(str, unique_key=True)
-    username=Column(str, unique_key=True)
-    password=Column(str)
+    __tablename__="users"
+    id=Column(Integer, primary_key=True, index=True)
+    email=Column(String, unique=True,index=True)
+    username=Column(String, unique=True)
+    password=Column(String) #or Text
+    tasks=relationship("Task", back_populates="owner")
