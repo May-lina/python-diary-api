@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Depends
+from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db,engine
-from schemas import TaskCreate, TaskResponse, UserCreate, UserResponse, TaskUpdate
+from schemas import TaskCreate, TaskResponse, UserCreate, UserResponse, TaskUpdate, LoginRequest
 from sqlalchemy.orm import session
-from hashing import hash_password
+from hashing import hash_password, verify_password
 from fastapi import HTTPException,status
 from models import Task, User,Base
 Base.metadata.create_all(bind=engine)
@@ -76,3 +77,33 @@ def delete_task(task_id:int, db:session = Depends(get_db)):
     
     db.delete(task)
     db.commit()
+
+
+# @app.post("/login")
+# def login(user_credentials:LoginRequest, db:session=Depends (get_db)):
+#     user=db.query(User).filter(User.username == user_credentials.username).first()
+
+#     if not user:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail= "user not found")
+#     is_valid=verify_password(user_credentials, user.password)
+#     print("VERIFY_RESULT:", is_valid)
+
+#     if not is_valid:
+#     # if not verify_password(user_credentials.password, user.password):
+#     #     print(user_credentials.password, user.password)
+#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
+    
+#     return{"message":"Login succesful"}
+
+
+@app.post("/login")
+def login(form_data: OAuth2PasswordRequestForm=Depends(), db:session=Depends(get_db)):
+    user=db.query(User).filter(User.username == form_data.username).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+    
+    if not verify_password(form_data.password, user.password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid password")
+          
+    return {"message": "login succesful"}

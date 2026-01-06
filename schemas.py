@@ -30,5 +30,10 @@ class TaskUpdate(BaseModel):
     content:str | None = None   
     description:str | None = None 
 
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 class config:
     orm_mode=True        
