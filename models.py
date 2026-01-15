@@ -14,6 +14,8 @@ class Task(Base):
     created_at=Column(DateTime(timezone=True), server_default=func.now())
     owner_id=Column(Integer, ForeignKey("users.id"))
     owner=relationship("User", back_populates="tasks")
+
+
 class User(Base):
     __tablename__="users"
     id=Column(Integer, primary_key=True, index=True)
@@ -21,3 +23,20 @@ class User(Base):
     username=Column(String, unique=True)
     password=Column(String) #or Text
     tasks=relationship("Task", back_populates="owner")
+
+class TaskBin(Base):
+    __tablename__ = "task_bin"
+
+    id = Column(Integer, primary_key=True, index=True)
+    original_task_id = Column(Integer, nullable=False)
+
+    title = Column(String(200), nullable=False)
+    content = Column(Text)
+    description = Column(Text)
+
+    owner_id = Column(Integer, ForeignKey("users.id"))
+
+    created_at = Column(DateTime)
+    deleted_at = Column(DateTime, default=func.now())
+
+    owner = relationship("User")

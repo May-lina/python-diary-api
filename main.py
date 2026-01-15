@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from database import get_db, engine
-from models import Base, Task, User
-from schemas import TaskCreate, TaskResponse, TaskUpdate, UserCreate, UserResponse
+from models import Base, Task, User, TaskBin
+from schemas import TaskCreate, TaskResponse, TaskUpdate, UserCreate, UserResponse, TaskBinResponse
 from hashing import hash_password, verify_password
 from auth import create_access_token, get_current_user
 
@@ -121,9 +121,69 @@ def delete_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    task = db.query(Task).filter(Task.id == task_id, Task.owner_id == current_user.id).first()
+    task = (
+        db.query(Task)
+        .filter(Task.id == task_id, Task.owner_id == current_user.id)
+        .first()
+    )
+
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    task_bin = TaskBin(
+        original_task_id=task.id,
+        title=task.title,
+        content=task.content,
+        description=task.description,
+        owner_id=task.owner_id,
+        created_at=task.created_at,
+    )
+
+    db.add(task_bin)
     db.delete(task)
     db.commit()
+
+    return {"message": "Task moved to bin successfully"}
+
+
+
+@app.get("/tasks-bin", response_model=list[TaskBinResponse])
+def get_bin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return (
+        db.query(TaskBin).filter(
+            TaskBin.owner_id == current_user.id).all()
+    )
+
+@app.post("/tasks/bin/{bin_id}/restore", status_code=201)
+def restore_task(
+    bin_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    bin_task = (
+        db.query(TaskBin)
+        .filter(
+            TaskBin.id == bin_id,
+            TaskBin.owner_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not bin_task:
+        raise HTTPException(status_code=404, detail="Bin task not found")
+
+    restored_task = Task(
+        title=bin_task.title,
+        content=bin_task.content,
+        description=bin_task.description,
+        owner_id=bin_task.owner_id,
+    )
+
+    db.add(restored_task)
+    db.delete(bin_task)
+    db.commit()
+
+    return {"message": "Task restored successfully"}

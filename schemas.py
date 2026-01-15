@@ -40,3 +40,17 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class TaskBinResponse(BaseModel):
+    id: int
+    original_task_id: int
+    title: str
+    content: str | None
+    description: str | None
+    owner_id: int
+    created_at: datetime
+    deleted_at: datetime
+
+    class Config:
+        from_attributes = True
+
