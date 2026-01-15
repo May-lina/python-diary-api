@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from database import get_db, engine
-from models import Base, Task, User
+from models import Base, Task, User, TaskBin
 from schemas import TaskCreate, TaskResponse, TaskUpdate, UserCreate, UserResponse
 from hashing import hash_password, verify_password
 from auth import create_access_token, get_current_user
@@ -124,6 +124,34 @@ def delete_task(
     task = db.query(Task).filter(Task.id == task_id, Task.owner_id == current_user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    
 
+    if task.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="forbidden")
+    
+    bin=TaskBin(original_task_id=task.id, title=task.title, content=task.content, description=task.description, owner_id=current_user.id)
+    
+    db.add(bin)
     db.delete(task)
     db.commit()
+    
+
+
+@app.post("/bin/{bin_id}/recover", response_model=TaskResponse)
+def recover(bin_id:int, current_user:User=Depends(get_current_user), db:Session=Depends(get_db)):
+    bin=db.query(TaskBin).filter(TaskBin.id==bin_id).first()
+
+    if not bin:
+        raise HTTPException(status_code=404, detail="not found")
+    
+    if bin.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="forbidden")
+
+    restored_task=Task(title=bin.title, content=bin.content, description=bin.description, owner_id=current_user.id)
+
+    db.add(restored_task)
+    db.delete(bin)
+    db.commit()
+    db.refresh(restored_task) 
+
+    return restored_task
