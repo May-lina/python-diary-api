@@ -134,12 +134,22 @@ def delete_task(
     db.add(bin)
     db.delete(task)
     db.commit()
+
     
+@app.get("/tasks/bin")
+def get_bin(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return db.query(TaskBin).filter(
+        TaskBin.owner_id == user.id
+    ).all()
+
 
 
 @app.post("/bin/{bin_id}/recover", response_model=TaskResponse)
 def recover(bin_id:int, current_user:User=Depends(get_current_user), db:Session=Depends(get_db)):
-    bin=db.query(TaskBin).filter(TaskBin.id==bin_id).first()
+    bin=db.query(TaskBin).filter(
+        TaskBin.id==bin_id,
+        TaskBin.owner_id == current_user.id
+        ).first()
 
     if not bin:
         raise HTTPException(status_code=404, detail="not found")
@@ -147,7 +157,10 @@ def recover(bin_id:int, current_user:User=Depends(get_current_user), db:Session=
     if bin.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="forbidden")
 
-    restored_task=Task(title=bin.title, content=bin.content, description=bin.description, owner_id=current_user.id)
+    restored_task=Task(title=bin.title,
+                       content=bin.content,
+                       description=bin.description,
+                       owner_id=current_user.id)
 
     db.add(restored_task)
     db.delete(bin)
